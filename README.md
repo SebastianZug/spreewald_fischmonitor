@@ -46,6 +46,58 @@ Der Ansatz beruht darauf, dass die Kamera fest steht: der zeitliche Median
 vieler Frames ergibt die Szene *ohne* Fische; alles, was sich davon abhebt und
 in eine plausible Größe fällt, wird als bewegtes Objekt markiert.
 
+### Höhere Auflösung & kleine Fische
+
+Alle Größen-Parameter (`--min/--max`, `--max-dist`, `--move`) sind auf einen
+1664 px breiten equirectangular-Clip getunt und werden **automatisch auf die
+tatsächliche Videobreite hochskaliert** (Flächen quadratisch, Distanzen linear).
+Dieselben Werte meinen so bei jeder Auflösung dasselbe *physikalische* Objekt.
+Höher aufgelöstes Material (z. B. 5760 px aus der `.insv`) hilft, weil ein
+entfernter Fisch dort mehr Pixel belegt und die Rauschschwelle überschreitet.
+Mit `--ref-width` lässt sich die Bezugsbreite überschreiben.
+
+### Pflanzenfilter (schwankende Vegetation)
+
+Schwankende Wasserpflanzen bewegen sich zwar, aber **ortsfest**: derselbe Pixel
+weicht in vielen Frames vom Hintergrund ab, während ein Fisch ihn nur kurz
+aktiviert. `fisch-track` baut daraus in einem Vorlauf eine **Pflanzenmaske**
+(Bewegungs-Häufigkeitskarte, `src/fischzaehler/activity.py`) und verwirft
+Detektionen, die überwiegend darin liegen. Zusammen mit dem Netto-Weg-Filter
+(`--move`) trennt das Fische von wiegendem Kraut. Steuerung:
+
+```bash
+fisch-track clip.mp4 out.mp4 --plant-persist 0.10   # Empfindlichkeit der Maske
+fisch-track clip.mp4 out.mp4 --no-plant-mask        # Filter abschalten
+```
+
+### Klarere Darstellung (`--enhance`)
+
+Unterwasseraufnahmen sind trüb und grünstichig. `--enhance` legt einen
+kosmetischen Pass (Weißabgleich + CLAHE, `src/fischzaehler/enhance.py`) auf das
+**Ausgabevideo** — bewusst *nach* der Detektion: auf den Erkennungs-Input gelegt
+verstärkt CLAHE die Vegetationstextur und erzeugt massenhaft Fehlerkennungen
+(empirisch geprüft). Die Detektion arbeitet daher weiter auf dem Rohbild, nur die
+gezeigten Frames werden aufgehellt.
+
+```bash
+fisch-track clip.mp4 out.mp4 --enhance
+```
+
+### Web-Viewer mit Zeitleiste
+
+Der 360°-Viewer in [`site/`](site/) hat eine klick-/ziehbare Zeitleiste zum Vor-
+und Zurückspringen. Darüber liegt eine **Fisch-Aktivitätsspur**: grün = Fische im
+Zeitfenster (Helligkeit ~ Anzahl), dunkel = keine. Die Daten liefert
+`--stats-json` (aktive Fische pro Frame), das der Viewer je Clip lädt:
+
+```bash
+# markiertes Video + passende Statistik in einem Lauf:
+fisch-track clip.mp4 site/clips/tracked.mp4 --enhance --stats-json site/clips/tracked.json
+```
+
+In `site/index.html` den Clip mit `stats`-Feld eintragen, dann zeigt die
+Zeitleiste die Aktivitätsspur.
+
 ## Entwicklung
 
 ```bash

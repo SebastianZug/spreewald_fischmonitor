@@ -41,15 +41,78 @@
     }
     #start p { margin: 0; opacity: .85; }
     #hint {
-      position: fixed; bottom: .8rem; left: 0; right: 0; z-index: 10;
+      position: fixed; bottom: 4.6rem; left: 0; right: 0; z-index: 10;
       text-align: center; color: #fff9; font-size: .8rem; pointer-events: none;
     }
+
+    /* ── Zeitleiste mit Fisch-Aktivitätsspur ─────────────────────────── */
+    #timeline {
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 15;
+      display: flex; align-items: center; gap: .7rem;
+      padding: .55rem .9rem calc(.55rem + env(safe-area-inset-bottom));
+      background: linear-gradient(#0000, #000b 35%);
+      color: #fff; font-size: .8rem; pointer-events: auto;
+    }
+    #playpause {
+      flex: none; width: 2rem; height: 2rem; border-radius: 50%;
+      background: #ffffff1f; border: 1px solid #ffffff40; color: #fff;
+      font-size: .9rem; cursor: pointer; line-height: 1;
+    }
+    #track {
+      position: relative; flex: 1 1 auto; height: 2rem; cursor: pointer;
+      border-radius: 5px; overflow: hidden; background: #20262b;
+    }
+    #fishbar { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+    #played {
+      position: absolute; top: 0; bottom: 0; left: 0; width: 0;
+      background: #35a7ff33; border-right: 2px solid #35a7ff; pointer-events: none;
+    }
+    #time { flex: none; font-variant-numeric: tabular-nums; opacity: .9; min-width: 8.5ch; }
+    #legend {
+      position: fixed; bottom: 3.4rem; right: .9rem; z-index: 15;
+      background: #000000a6; border: 1px solid #ffffff1f; border-radius: 8px;
+      padding: .5rem .7rem; color: #fff; font-size: .72rem; line-height: 1.55;
+      pointer-events: none; max-width: 15rem;
+    }
+    #legend .row { display: flex; align-items: baseline; gap: .4rem; }
+    #legend .sw {
+      flex: none; width: .8em; height: .8em; border-radius: 2px;
+      transform: translateY(1px);
+    }
+    #legend hr { border: 0; border-top: 1px solid #ffffff1f; margin: .35rem 0; }
+    #legend .cap { opacity: .7; }
+
+    /* ── Uni-Branding oben rechts ────────────────────────────────────── */
+    #brand {
+      position: fixed; top: .5rem; right: .8rem; z-index: 16;
+      display: flex; align-items: center; gap: .7rem;
+      color: #fff; text-align: right; pointer-events: none;
+      text-shadow: 0 1px 3px #000a;
+      background: #00000059; border: 1px solid #ffffff1f; border-radius: 10px;
+      padding: .4rem .7rem;
+    }
+    #brand #logo { height: 3rem; width: auto; display: block; }
+    #brand .meta { font-size: .72rem; line-height: 1.35; opacity: .95; }
+    #brand .meta .uni { font-weight: 600; font-size: .82rem; }
   </style>
 </head>
 <body>
   <div id="ui">
     <h1>🐟 Fischzähler – 360°</h1>
     <div class="clips" id="clips"></div>
+  </div>
+
+  <!-- Uni-Branding: Logo-Datei als site/tubaf-logo.svg oder .png ablegen;
+       fehlt sie, greift der Text-Fallback automatisch. -->
+  <div id="brand">
+    <div class="meta">
+      <div class="uni">TU Bergakademie Freiberg</div>
+      <div>Sommersemester 2026</div>
+      <div>Technoökologisches Projekt</div>
+    </div>
+    <img id="logo" src="tubaf-logo.svg" alt="TU Bergakademie Freiberg"
+         onload="document.querySelector('#brand .uni').style.display='none'"
+         onerror="if(!this.dataset.png){this.dataset.png=1;this.src='tubaf-logo.png'}else{this.style.display='none'}">
   </div>
 
   <div id="start">
@@ -59,10 +122,27 @@
 
   <div id="hint">Ziehen zum Umsehen · Scrollen zum Zoomen</div>
 
+  <div id="legend">
+    <div class="row"><span class="sw" style="background:#3cdc3c"></span><span>gezählter Fisch</span></div>
+    <div class="row"><span class="sw" style="background:#ffc800"></span><span>beobachtet – noch kein Bewegungsnachweis</span></div>
+    <hr>
+    <div class="cap">Zeitleiste:</div>
+    <div class="row"><span class="sw" style="background:#43d16a"></span><span>Fische im Zeitfenster</span></div>
+    <div class="row"><span class="sw" style="background:#20262b"></span><span>keine</span></div>
+  </div>
+  <div id="timeline">
+    <button id="playpause" title="Play/Pause">⏸</button>
+    <div id="track">
+      <canvas id="fishbar"></canvas>
+      <div id="played"></div>
+    </div>
+    <span id="time">0:00 / 0:00</span>
+  </div>
+
   <a-scene embedded vr-mode-ui="enabled: false" loading-screen="enabled: false">
     <a-assets>
       <video id="vid" crossorigin="anonymous" loop muted playsinline webkit-playsinline
-             preload="auto" src="clips/demo.mp4"></video>
+             preload="auto" src="clips/tracked_pos2.mp4"></video>
     </a-assets>
 
     <a-videosphere src="#vid" rotation="0 -90 0"></a-videosphere>
@@ -74,14 +154,38 @@
 
   <script>
     // ── Clip-Liste: hier weitere Ausschnitte eintragen ───────────────
+    // stats: optionale JSON mit {fps, frames, active_fish:[...]} pro Frame
     const CLIPS = [
+      { label: "Messposition 2 (Fließ)", src: "clips/tracked_pos2.mp4",
+        stats: "clips/tracked_pos2.json" },
       { label: "Demo", src: "clips/demo.mp4" },
-      // { label: "Ausschnitt 2", src: "clips/clip2.mp4" },
+      { label: "Pos2 roh (25 min)", src: "clips/pos2_080712.mp4" },
     ];
 
     const vid = document.getElementById('vid');
     const clipsBar = document.getElementById('clips');
     const start = document.getElementById('start');
+    const track = document.getElementById('track');
+    const fishbar = document.getElementById('fishbar');
+    const played = document.getElementById('played');
+    const timeLbl = document.getElementById('time');
+    const playBtn = document.getElementById('playpause');
+
+    let stats = null;
+
+    // ── Clip laden (+ zugehörige Fisch-Statistik) ────────────────────
+    function loadClip(c) {
+      vid.src = c.src;
+      vid.play().catch(() => {});
+      stats = null;
+      drawFishbar();
+      if (c.stats) {
+        fetch(c.stats)
+          .then(r => r.ok ? r.json() : Promise.reject())
+          .then(j => { stats = j; drawFishbar(); })
+          .catch(() => { stats = null; drawFishbar(); });
+      }
+    }
 
     // Buttons für jeden Clip bauen
     CLIPS.forEach((c, i) => {
@@ -91,11 +195,65 @@
       b.onclick = () => {
         document.querySelectorAll('#clips button').forEach(x => x.classList.remove('active'));
         b.classList.add('active');
-        vid.src = c.src;
-        vid.play();
+        loadClip(c);
       };
       clipsBar.appendChild(b);
     });
+
+    // ── Fisch-Aktivitätsspur zeichnen ────────────────────────────────
+    // Pro Bildspalte das Maximum der aktiven Fische im zugehörigen
+    // Zeitfenster: grün = Fische vorhanden, dunkel = keine.
+    function drawFishbar() {
+      const w = fishbar.width = fishbar.clientWidth || track.clientWidth || 1;
+      const h = fishbar.height = fishbar.clientHeight || 32;
+      const ctx = fishbar.getContext('2d');
+      ctx.clearRect(0, 0, w, h);
+      if (!stats || !stats.active_fish || !stats.active_fish.length) {
+        ctx.fillStyle = '#2a3138'; ctx.fillRect(0, 0, w, h); return;
+      }
+      const a = stats.active_fish, n = a.length;
+      let mx = 1; for (const v of a) if (v > mx) mx = v;
+      for (let x = 0; x < w; x++) {
+        const f0 = Math.floor(x / w * n);
+        const f1 = Math.max(f0 + 1, Math.floor((x + 1) / w * n));
+        let c = 0; for (let i = f0; i < f1 && i < n; i++) if (a[i] > c) c = a[i];
+        if (c === 0) { ctx.fillStyle = '#20262b'; }
+        else { ctx.fillStyle = `hsl(140,68%,${28 + 42 * (c / mx)}%)`; }
+        ctx.fillRect(x, 0, 1, h);
+      }
+    }
+
+    // ── Fortschritt & Zeit synchronisieren ───────────────────────────
+    const fmt = s => {
+      if (!isFinite(s)) s = 0;
+      const m = Math.floor(s / 60), r = Math.floor(s % 60);
+      return m + ':' + String(r).padStart(2, '0');
+    };
+    vid.addEventListener('timeupdate', () => {
+      const d = vid.duration || 0, p = d ? vid.currentTime / d : 0;
+      played.style.width = (p * 100) + '%';
+      timeLbl.textContent = fmt(vid.currentTime) + ' / ' + fmt(d);
+    });
+
+    // ── Suchen per Klick/Ziehen ──────────────────────────────────────
+    function seek(clientX) {
+      const rect = track.getBoundingClientRect();
+      const x = Math.min(Math.max(0, clientX - rect.left), rect.width);
+      if (vid.duration) vid.currentTime = (x / rect.width) * vid.duration;
+    }
+    let dragging = false;
+    track.addEventListener('mousedown', e => { dragging = true; seek(e.clientX); e.preventDefault(); });
+    window.addEventListener('mousemove', e => { if (dragging) seek(e.clientX); });
+    window.addEventListener('mouseup', () => { dragging = false; });
+    track.addEventListener('touchstart', e => { seek(e.touches[0].clientX); }, { passive: true });
+    track.addEventListener('touchmove', e => { seek(e.touches[0].clientX); }, { passive: true });
+
+    // ── Play/Pause ───────────────────────────────────────────────────
+    playBtn.onclick = () => { vid.paused ? vid.play() : vid.pause(); };
+    vid.addEventListener('play', () => playBtn.textContent = '⏸');
+    vid.addEventListener('pause', () => playBtn.textContent = '▶');
+
+    window.addEventListener('resize', drawFishbar);
 
     // Start-Overlay: erst nach Klick abspielen (mit Ton)
     start.addEventListener('click', () => {
@@ -103,6 +261,9 @@
       vid.play().catch(() => { vid.muted = true; vid.play(); });
       start.style.display = 'none';
     });
+
+    // Erststart: Standardclip + Statistik laden
+    loadClip(CLIPS[0]);
   </script>
 </body>
 </html>
