@@ -6,7 +6,7 @@ Zeigt Ausschnitte der Insta360-Unterwasseraufnahmen als interaktives
 ## Aufbau
 
 ```
-site/
+docs/
 ├── index.html      # die 360°-Viewer-Seite (A-Frame)
 ├── make_clip.sh    # Ausschnitte schneiden + stitchen + komprimieren
 ├── clips/          # die fertigen Web-Videos (kommen ins Repo)
@@ -43,7 +43,7 @@ python3 -m http.server 8765
 ## Auf GitHub Pages veröffentlichen
 
 1. Repo auf GitHub anlegen (z. B. `fischzaehler-360`).
-2. Inhalt des Ordners `site/` ins Repo pushen (Details im Chat).
+2. Inhalt des Ordners `docs/` ins Repo pushen (Details im Chat).
 3. In den Repo-Einstellungen: **Settings → Pages → Source = Branch `main`, Ordner `/ (root)`**.
 4. Nach ~1 Minute erreichbar unter
    `https://<dein-name>.github.io/fischzaehler-360/`

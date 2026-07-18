@@ -22,7 +22,7 @@ fisch_markiert_*.mp4
 # grosse, aus der .insv gestitchte Zwischen-Clips (Wurzelverzeichnis)
 360_pos2_*.mp4
 # Ausnahme: der kleine, web-taugliche 360-Clip GEHOERT ins Repo
-!site/clips/tracked_pos2.mp4
+!docs/clips/tracked_pos2.mp4
 
 # --- OS / Editor ---
 .DS_Store
