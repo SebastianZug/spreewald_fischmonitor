@@ -1,0 +1,8 @@
+# Rohdaten & große Quellen NICHT ins Repo (GitHub-Limit 100 MB/Datei)
+*.lrv
+*.insv
+*.insp
+*.zip
+*.xz
+*.deb
+../360_pos2/

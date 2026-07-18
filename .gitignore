@@ -1,0 +1,27 @@
+# --- Python / uv ---
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+
+# --- Rohdaten & grosse Quellen NICHT ins Repo (GitHub-Limit 100 MB/Datei) ---
+*.lrv
+*.insv
+*.insp
+*.zip
+*.xz
+*.deb
+360_pos2/
+
+# --- erzeugte / markierte Videos ---
+*_marked.mp4
+fisch_markiert_*.mp4
+
+# --- OS / Editor ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

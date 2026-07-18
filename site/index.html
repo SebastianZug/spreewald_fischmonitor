@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>Fischzähler – 360° Aufnahmen</title>
+  <!-- A-Frame wird vom CDN geladen (funktioniert live auf github.io) -->
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <style>
+    html, body { margin: 0; height: 100%; background: #000; font-family: system-ui, sans-serif; }
+
+    /* Kopfzeile mit Titel + Clip-Auswahl */
+    #ui {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 10;
+      display: flex; gap: .75rem; align-items: center; flex-wrap: wrap;
+      padding: .6rem .9rem;
+      background: linear-gradient(#000c, #0000);
+      color: #fff; pointer-events: none;
+    }
+    #ui h1 { font-size: 1rem; margin: 0; font-weight: 600; }
+    #ui .clips { display: flex; gap: .4rem; flex-wrap: wrap; pointer-events: auto; }
+    #ui button {
+      background: #ffffff22; color: #fff; border: 1px solid #ffffff44;
+      border-radius: 999px; padding: .3rem .8rem; font-size: .85rem; cursor: pointer;
+    }
+    #ui button.active { background: #35a7ff; border-color: #35a7ff; }
+
+    /* Start-Overlay (Browser blocken Autoplay mit Ton) */
+    #start {
+      position: fixed; inset: 0; z-index: 20;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 1rem; background: #000d; color: #fff; cursor: pointer;
+    }
+    #start .play {
+      width: 84px; height: 84px; border-radius: 50%;
+      background: #35a7ff; display: grid; place-items: center;
+    }
+    #start .play::after {
+      content: ""; border-style: solid; border-width: 16px 0 16px 26px;
+      border-color: transparent transparent transparent #fff; margin-left: 6px;
+    }
+    #start p { margin: 0; opacity: .85; }
+    #hint {
+      position: fixed; bottom: .8rem; left: 0; right: 0; z-index: 10;
+      text-align: center; color: #fff9; font-size: .8rem; pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="ui">
+    <h1>🐟 Fischzähler – 360°</h1>
+    <div class="clips" id="clips"></div>
+  </div>
+
+  <div id="start">
+    <div class="play"></div>
+    <p>Zum Starten klicken – dann mit der Maus umsehen</p>
+  </div>
+
+  <div id="hint">Ziehen zum Umsehen · Scrollen zum Zoomen</div>
+
+  <a-scene embedded vr-mode-ui="enabled: false" loading-screen="enabled: false">
+    <a-assets>
+      <video id="vid" crossorigin="anonymous" loop muted playsinline webkit-playsinline
+             preload="auto" src="clips/demo.mp4"></video>
+    </a-assets>
+
+    <a-videosphere src="#vid" rotation="0 -90 0"></a-videosphere>
+
+    <a-camera fov="80" wasd-controls-enabled="false">
+      <!-- look-controls (Maus/Touch) ist standardmäßig aktiv -->
+    </a-camera>
+  </a-scene>
+
+  <script>
+    // ── Clip-Liste: hier weitere Ausschnitte eintragen ───────────────
+    const CLIPS = [
+      { label: "Demo", src: "clips/demo.mp4" },
+      // { label: "Ausschnitt 2", src: "clips/clip2.mp4" },
+    ];
+
+    const vid = document.getElementById('vid');
+    const clipsBar = document.getElementById('clips');
+    const start = document.getElementById('start');
+
+    // Buttons für jeden Clip bauen
+    CLIPS.forEach((c, i) => {
+      const b = document.createElement('button');
+      b.textContent = c.label;
+      if (i === 0) b.classList.add('active');
+      b.onclick = () => {
+        document.querySelectorAll('#clips button').forEach(x => x.classList.remove('active'));
+        b.classList.add('active');
+        vid.src = c.src;
+        vid.play();
+      };
+      clipsBar.appendChild(b);
+    });
+
+    // Start-Overlay: erst nach Klick abspielen (mit Ton)
+    start.addEventListener('click', () => {
+      vid.muted = false;
+      vid.play().catch(() => { vid.muted = true; vid.play(); });
+      start.style.display = 'none';
+    });
+  </script>
+</body>
+</html>
