@@ -143,7 +143,7 @@
   <a-scene embedded vr-mode-ui="enabled: false" loading-screen="enabled: false">
     <a-assets>
       <video id="vid" crossorigin="anonymous" loop muted playsinline webkit-playsinline
-             preload="auto" src="clips/tracked_pos2.mp4"></video>
+             preload="auto" src="clips/manuell_pos1.mp4"></video>
     </a-assets>
 
     <a-videosphere src="#vid" rotation="0 -90 0"></a-videosphere>
@@ -157,10 +157,10 @@
     // ── Clip-Liste: hier weitere Ausschnitte eintragen ───────────────
     // stats: optionale JSON mit {fps, frames, active_fish:[...]} pro Frame
     const CLIPS = [
-      { label: "Messposition 2 (Fließ)", src: "clips/tracked_pos2.mp4",
-        stats: "clips/tracked_pos2.json" },
       { label: "Messposition 1 (Fischtreppe)", src: "clips/manuell_pos1.mp4",
         stats: "clips/manuell_pos1.json" },
+      { label: "Messposition 2 (Fließ)", src: "clips/tracked_pos2.mp4",
+        stats: "clips/tracked_pos2.json" },
     ];
 
     const vid = document.getElementById('vid');
