@@ -83,6 +83,47 @@ gezeigten Frames werden aufgehellt.
 fisch-track clip.mp4 out.mp4 --enhance
 ```
 
+### Szenen-Presets (`--preset`)
+
+Verschiedene Aufnahmestellen brauchen verschiedene Parameter: das trübe Krautbett
+(viele kleine Fische, wenig Blendung) verträgt niedrige Schwellen, die klare,
+sonnige Fließ-Stelle (wenige große Fische, starke Kaustik/Partikel) braucht
+höhere Mindestfläche und `--ignore-bright`. Diese Sets stehen in
+[`presets.json`](presets.json) und werden per Namen geladen:
+
+```bash
+fisch-track pos2.mp4 out.mp4 --preset pos2_kraut --stats-json out.json
+fisch-track pos1.mp4 out.mp4 --preset pos1_klar  --stats-json out.json
+```
+
+Auflösung der Werte: **explizites CLI-Argument > Preset > eingebauter Default**.
+Ein Preset ist ein JSON-Objekt mit den Tuning-Schlüsseln (`min`, `thresh`,
+`move`, `ignore_bright`, `plant_persist`, `enhance`, …). Mit `--presets-file`
+lässt sich eine andere Datei angeben.
+
+**Formfilter** (v. a. für klare Szenen mit driftenden Ästen): kompakte Fische
+behalten, dünne/spindelige Objekte verwerfen — über die Kontur-Kennzahlen
+`min_extent` (Fläche/Bounding-Box), `max_aspect` (Seitenverhältnis) und
+`min_solidity` (Fläche/konvexe Hülle). Ein langer diagonaler Ast füllt seine
+Box kaum (niedrige Extent, hohes Seitenverhältnis) und fliegt so raus, während
+der kompakte Fisch bleibt. Jeweils `0` = aus (Default).
+
+## Manuelle Einzel-Markierung (`fisch-mark`)
+
+In klaren, sonnigen Szenen (starke Kaustik, Blendung, driftende Partikel)
+scheitert die automatische Bewegungsdetektion — sie findet überall „Bewegung".
+Ist aber nur **ein bekannter Fisch** interessant, gibt man ihn per Startbox vor;
+ein Korrelationstracker (MIL) folgt ihm vorwärts **und** rückwärts durch den
+Clip. Ergebnis: **genau eine rote Box „manuelle Identifikation"**, ohne jeden
+Fehl-Treffer. Bewusst rot/beschriftet, um sie klar von der automatischen
+Erkennung (grün = gezählt, gelb = beobachtet) zu unterscheiden.
+
+```bash
+# Startbox X Y B H auf den Fisch, Frame-Nr. der Startposition:
+fisch-mark pos1.mp4 out.mp4 --seed 270 --box 2985 885 230 190 \
+    --enhance --stats-json out.json
+```
+
 ### Web-Viewer mit Zeitleiste
 
 Der 360°-Viewer in [`docs/`](docs/) hat eine klick-/ziehbare Zeitleiste zum Vor-

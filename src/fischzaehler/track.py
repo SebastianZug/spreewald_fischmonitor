@@ -36,34 +36,69 @@ class Track:
         self.drawn = False
 
 
+# Default-Werte der szenenabhaengigen Tuning-Parameter (Attributnamen mit _).
+# Reihenfolge der Aufloesung: explizites CLI-Argument > Preset > dieser Default.
+PARAM_DEFAULTS = {
+    "min": 40, "max": 9000, "thresh": 20, "max_dist": 60, "min_hits": 4,
+    "max_misses": 8, "move": 25, "ignore_bright": 256,
+    "plant_persist": 0.10, "plant_overlap": 0.5,
+    "min_extent": 0.0, "max_aspect": 0.0, "min_solidity": 0.0,
+    "no_plant_mask": False, "enhance": False,
+}
+
+
+def load_preset(path, name):
+    """Preset-Dict aus einer JSON-Datei laden (Schluessel = Attributnamen)."""
+    with open(path) as fh:
+        presets = json.load(fh)
+    if name not in presets:
+        raise SystemExit(f"Preset '{name}' nicht in {path} "
+                         f"(vorhanden: {', '.join(sorted(presets))})")
+    unknown = set(presets[name]) - set(PARAM_DEFAULTS)
+    if unknown:
+        raise SystemExit(f"Preset '{name}': unbekannte Schluessel {sorted(unknown)}")
+    return presets[name]
+
+
 def main():
     ap = argparse.ArgumentParser(prog="fisch-track", description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("src")
     ap.add_argument("dst")
-    ap.add_argument("--min", type=int, default=40,
+    # Tuning-Parameter: default=None -> "nicht explizit gesetzt" (Preset/Default greifen)
+    ap.add_argument("--min", type=int, default=None,
                     help=f"min. Blobflaeche (px bei {REF_WIDTH}px-Referenz)")
-    ap.add_argument("--max", type=int, default=9000,
+    ap.add_argument("--max", type=int, default=None,
                     help=f"max. Blobflaeche (px bei {REF_WIDTH}px-Referenz)")
-    ap.add_argument("--thresh", type=int, default=20)
-    ap.add_argument("--max-dist", type=int, default=60,
+    ap.add_argument("--thresh", type=int, default=None)
+    ap.add_argument("--max-dist", type=int, default=None,
                     help=f"max. px zwischen Frames (bei {REF_WIDTH}px-Referenz)")
-    ap.add_argument("--min-hits", type=int, default=4, help="Frames bis Spur bestaetigt")
-    ap.add_argument("--max-misses", type=int, default=8, help="Frames bis Spur verworfen")
-    ap.add_argument("--move", type=int, default=25,
+    ap.add_argument("--min-hits", type=int, default=None, help="Frames bis Spur bestaetigt")
+    ap.add_argument("--max-misses", type=int, default=None, help="Frames bis Spur verworfen")
+    ap.add_argument("--move", type=int, default=None,
                     help=f"Netto-Weg fuer 'Fisch' (px bei {REF_WIDTH}px-Referenz)")
-    ap.add_argument("--ignore-bright", type=int, default=256,
+    ap.add_argument("--ignore-bright", type=int, default=None,
                     help="helle Bereiche > Wert ignorieren (Sonne/Kaustik); 256 = aus")
     ap.add_argument("--ref-width", type=int, default=REF_WIDTH,
                     help="Referenzbreite, auf der --min/--max/... getunt sind")
-    ap.add_argument("--no-plant-mask", action="store_true",
+    ap.add_argument("--no-plant-mask", action="store_true", default=None,
                     help="Pflanzenmaske (schwankende Vegetation ausblenden) abschalten")
-    ap.add_argument("--plant-persist", type=float, default=0.10,
+    ap.add_argument("--plant-persist", type=float, default=None,
                     help="Pixel gilt als Pflanze ab diesem Aktivitaets-Anteil (0..1)")
-    ap.add_argument("--plant-overlap", type=float, default=0.5,
+    ap.add_argument("--plant-overlap", type=float, default=None,
                     help="Detektion verwerfen, wenn Anteil in Pflanzenmaske > Wert")
-    ap.add_argument("--enhance", action="store_true",
+    ap.add_argument("--min-extent", type=float, default=None,
+                    help="Formfilter: min. Flaeche/Bounding-Box (verwirft duenne Aeste); 0=aus")
+    ap.add_argument("--max-aspect", type=float, default=None,
+                    help="Formfilter: max. Seitenverhaeltnis (verwirft lange Aeste); 0=aus")
+    ap.add_argument("--min-solidity", type=float, default=None,
+                    help="Formfilter: min. Flaeche/konvexe Huelle (verwirft spindelige Pflanzen); 0=aus")
+    ap.add_argument("--enhance", action="store_true", default=None,
                     help="Ausgabevideo kosmetisch aufhellen/entfaerben (Detektion bleibt roh)")
+    ap.add_argument("--preset", default=None,
+                    help="benanntes Parameter-Set aus der Preset-Datei laden")
+    ap.add_argument("--presets-file", default="presets.json",
+                    help="JSON mit szenenabhaengigen Presets (Default: presets.json)")
     ap.add_argument("--stats-json", default=None,
                     help="JSON mit aktiven Fischen pro Frame schreiben (fuer den Web-Viewer)")
     ap.add_argument("--count-only", action="store_true",
@@ -71,6 +106,14 @@ def main():
     ap.add_argument("--bin", type=int, default=60,
                     help="Histogramm-Fenster in Sekunden (Default 60)")
     args = ap.parse_args()
+
+    # Aufloesung: explizites CLI > Preset > PARAM_DEFAULTS
+    preset = load_preset(args.presets_file, args.preset) if args.preset else {}
+    for key, default in PARAM_DEFAULTS.items():
+        if getattr(args, key) is None:
+            setattr(args, key, preset.get(key, default))
+    if args.preset:
+        print(f"Preset '{args.preset}' geladen aus {args.presets_file}")
 
     cap = cv2.VideoCapture(args.src)
     if not cap.isOpened():
@@ -140,6 +183,18 @@ def main():
                 roi = pmask[y:y + bh, x:x + bw]
                 if roi.size and (roi > 0).mean() > args.plant_overlap:
                     continue   # Detektion liegt in schwankender Vegetation
+            # Formfilter: kompakte Fische behalten, duenne/spindelige Aeste & Pflanzen verwerfen
+            if args.min_extent or args.max_aspect or args.min_solidity:
+                extent = a / (bw * bh) if bw * bh else 0
+                aspect = max(bw, bh) / max(1, min(bw, bh))
+                if args.min_extent and extent < args.min_extent:
+                    continue
+                if args.max_aspect and aspect > args.max_aspect:
+                    continue
+                if args.min_solidity:
+                    hull = cv2.contourArea(cv2.convexHull(c))
+                    if hull and a / hull < args.min_solidity:
+                        continue
             dets.append((x + bw / 2, y + bh / 2, (x, y, bw, bh)))
 
         # greedy: jede Erkennung der naechsten Spur zuordnen

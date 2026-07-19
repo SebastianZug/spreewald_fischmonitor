@@ -1,0 +1,19 @@
+{
+  "pos2_kraut": {
+    "min": 40,
+    "thresh": 20,
+    "move": 25,
+    "plant_persist": 0.10,
+    "enhance": true
+  },
+  "pos1_klar": {
+    "min": 100,
+    "thresh": 24,
+    "ignore_bright": 245,
+    "move": 30,
+    "min_extent": 0.32,
+    "max_aspect": 4.5,
+    "min_solidity": 0.45,
+    "enhance": true
+  }
+}

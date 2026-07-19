@@ -125,6 +125,7 @@
   <div id="legend">
     <div class="row"><span class="sw" style="background:#3cdc3c"></span><span>gezählter Fisch</span></div>
     <div class="row"><span class="sw" style="background:#ffc800"></span><span>beobachtet – noch kein Bewegungsnachweis</span></div>
+    <div class="row"><span class="sw" style="background:#eb0000"></span><span>manuelle Identifikation</span></div>
     <hr>
     <div class="cap">Zeitleiste:</div>
     <div class="row"><span class="sw" style="background:#43d16a"></span><span>Fische im Zeitfenster</span></div>
@@ -158,8 +159,9 @@
     const CLIPS = [
       { label: "Messposition 2 (Fließ)", src: "clips/tracked_pos2.mp4",
         stats: "clips/tracked_pos2.json" },
+      { label: "Messposition 1 (Fischtreppe)", src: "clips/manuell_pos1.mp4",
+        stats: "clips/manuell_pos1.json" },
       { label: "Demo", src: "clips/demo.mp4" },
-      { label: "Pos2 roh (25 min)", src: "clips/pos2_080712.mp4" },
     ];
 
     const vid = document.getElementById('vid');

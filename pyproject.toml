@@ -16,6 +16,7 @@ dependencies = [
 [project.scripts]
 fisch-detect = "fischzaehler.detect:main"
 fisch-track = "fischzaehler.track:main"
+fisch-mark = "fischzaehler.mark:main"
 
 [project.optional-dependencies]
 dev = [
